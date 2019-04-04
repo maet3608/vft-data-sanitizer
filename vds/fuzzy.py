@@ -41,12 +41,13 @@ def load_sid2name(filename):
             yield sid.rjust(6, '0'), name.replace(',', ' ')
 
 
+# Example main
 if __name__ == '__main__':
     print('running')
     index = create_index('../data/subject_ids.csv')
     while 1:
         query = input('search: ')
         if query == 'q': break
-        print('-' * 50)
         match = find(query, index)
         print(match[0] if match else 'NO MATCH')
+        print('-' * 50)
