@@ -15,14 +15,10 @@ the index database.
 import logging
 import datetime
 import fuzzy
+import vds
 
 import os, sys
 import os.path as osp
-
-# Set of tags to remove
-STAGS = {'<LAST_NAME', '<GIVEN_NAME', '<MIDDLE_NAME', '<NAME_PREFIX',
-         '<NAME_SUFFIX', '<FULL_NAME', '<BIRTH_DATE', '<PATIENT_ID',
-         '<IMAGE_FILE_NAME'}
 
 logging.basicConfig(filename='sanitize.log',
                     filemode='w',
@@ -32,6 +28,17 @@ logger = logging.getLogger('sanitizer')
 
 error_counter = 0  # number file conversion errors
 sids = dict()  # Keep track of subject ids used
+
+# Set of tags to remove
+STAGS = {'<LAST_NAME', '<GIVEN_NAME', '<MIDDLE_NAME', '<NAME_PREFIX',
+         '<NAME_SUFFIX', '<FULL_NAME', '<BIRTH_DATE', '<PATIENT_ID',
+         '<IMAGE_FILE_NAME'}
+
+
+def log_info(msg):
+    """Log and print info messages"""
+    print(msg)
+    logger.info(msg)
 
 
 def extract_patientname(filepath):
@@ -141,25 +148,23 @@ def xmlfile_check(indir, outdir):
 
 def run(indexfile, indir, outdir):
     """Sanitized all XML files and indir and copy to outdir"""
-    logger.info('loading index ' + indexfile)
+    log_info('loading index ' + indexfile)
     index = fuzzy.create_index(indexfile)
 
     infilenames = xmlfile_check(indir, outdir)
     n = len(infilenames)
-    msg = 'processing %d files ...' % n
-    logger.info(msg)
-    print(msg)
+    log_info('processing %d files ...' % n)
     for i, infilename in enumerate(infilenames):
         logger.info('processing ' + infilename)
         outfilename = sanitize(index, indir, outdir, infilename)
         print('%d of %d : %s -> %s' % (i + 1, n, infilename, outfilename))
 
-    msg = 'finished with %d error(s)' % error_counter
-    print(msg)
-    logger.info(msg)
+    log_info('finished with %d error(s)' % error_counter)
 
 
 if __name__ == '__main__':
+    log_info("running sanitizer version %s" % vds.__version__)
+
     now = datetime.datetime.now()
     logger.info('time of processing ' + now.strftime("%Y-%m-%d %H:%M"))
 

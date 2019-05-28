@@ -1,4 +1,5 @@
-INFO : time of processing 2019-05-28 16:59
+INFO : running sanitizer version 2.0.0
+INFO : time of processing 2019-05-28 17:09
 INFO : cmdline args: sanitize.py ../data/index.csv ../data ../out
 INFO : loading index ../data/index.csv
 INFO : processing 2 files ...
