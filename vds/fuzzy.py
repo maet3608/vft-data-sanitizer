@@ -26,25 +26,25 @@ def find(query, index):
     return matches.most_common(1)
 
 
-def create_index(filename):
+def create_index(filepath):
     """Create n-gram index that maps n-grams to subject ids"""
-    sid2name = load_sid2name(filename)
+    sid2name = load_sid2name(filepath)
     return group_by((ngram, sid) for sid, name in sid2name for ngram in ngrams(name))
 
 
-def load_sid2name(filename):
+def load_sid2name(filepath):
     """Load file that maps subject ids to names"""
-    with open(filename) as csvfile:
+    with open(filepath) as csvfile:
         reader = csv.reader(csvfile)
         next(reader)  # skip header
         for sid, name in reader:
-            yield sid.rjust(6, '0'), name.replace(',', ' ')
+            yield sid.strip(), name.replace(',', ' ')
 
 
 # Example main
 if __name__ == '__main__':
     print('running')
-    index = create_index('../data/subject_ids.csv')
+    index = create_index('../data/index.csv')
     while 1:
         query = input('search: ')
         if query == 'q': break

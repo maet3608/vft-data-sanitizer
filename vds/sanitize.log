@@ -1,0 +1,9 @@
+INFO : time of processing 2019-05-28 16:59
+INFO : cmdline args: sanitize.py ../data/index.csv ../data ../out
+INFO : loading index ../data/index.csv
+INFO : processing 2 files ...
+INFO : processing DOE_20121024_114922_OD_000000_SFA.xml
+INFO : matches for DOE, Johny : [('11', 3)]
+INFO : processing DOE_20131118_092712_OD_00001_SFA.xml
+INFO : matches for DOE, JANE : [('7', 4)]
+INFO : finished with 0 error(s)
