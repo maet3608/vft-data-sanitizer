@@ -25,9 +25,11 @@ python sanitize.py ../data/index.csv ../data ../out
 Output should look like this
 
 ```bash
+running sanitizer version 2.0.0
+loading index ../data/index.csv
 processing 2 files ...
 1 of 2 : DOE_20121024_114922_OD_000000_SFA.xml -> 000011-2012-10-24-11-49-22-OD.xml
-2 of 2 : DOE_20131118_092712_OD_00001_SFA.xml -> 000005-2013-11-18-09-27-12-OD.xml
+2 of 2 : DOE_20131118_092712_OD_00001_SFA.xml -> 000007-2013-11-18-09-27-12-OD.xml
 finished with 0 error(s)
 ```
 
