@@ -147,7 +147,7 @@ def xmlfile_check(indir, outdir):
 
 
 def run(indexfile, indir, outdir):
-    """Sanitized all XML files and indir and copy to outdir"""
+    """Sanitized all XML files in indir and copy to outdir"""
     log_info('loading index ' + indexfile)
     index = fuzzy.create_index(indexfile)
 
