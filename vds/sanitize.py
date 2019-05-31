@@ -29,9 +29,12 @@ logger = logging.getLogger('sanitizer')
 error_counter = 0  # number file conversion errors
 sids = dict()  # Keep track of subject ids used
 
-# Set of tags to remove
+# Full name tags
+SNTAG, ENTAG = '<FULL_NAME>', '</FULL_NAME>'
+
+# Set of tags to remove. Note that full name will be replaced by sid
 STAGS = {'<LAST_NAME', '<GIVEN_NAME', '<MIDDLE_NAME', '<NAME_PREFIX',
-         '<NAME_SUFFIX', '<FULL_NAME', '<BIRTH_DATE', '<PATIENT_ID',
+         '<NAME_SUFFIX', '<BIRTH_DATE', '<PATIENT_ID',
          '<IMAGE_FILE_NAME'}
 
 
@@ -43,11 +46,10 @@ def log_info(msg):
 
 def extract_patientname(filepath):
     """Extract full name from xml file"""
-    stag, etag = '<FULL_NAME>', '</FULL_NAME>'
     with open(filepath) as f:
         for line in f:
-            if line.startswith(stag):
-                name = line.strip().replace(stag, '').replace(etag, '')
+            if line.startswith(SNTAG):
+                name = line.strip().replace(SNTAG, '').replace(ENTAG, '')
                 return name
     raise ValueError('No full patient name in ' + filepath)
 
@@ -81,7 +83,7 @@ def create_filename(sid, vdate, vtime, lat):
     y, o, d = vdate[:4], vdate[4:6], vdate[6:8]
     h, m, s = vtime[:2], vtime[2:4], vtime[4:6],
     uid = '%s-%s-%s-%s-%s-%s-%s' % (y, o, d, h, m, s, lat)
-    filename = '%06d-%s.xml' % (int(sid), uid)
+    filename = '%s-%s.xml' % (sid, uid)
     return filename
 
 
@@ -95,11 +97,13 @@ def remove_sensitive(lines):
     return (l for l in lines if not is_sensitive(l))
 
 
-def sanitize_file(infilepath, outfilepath):
+def sanitize_file(infilepath, outfilepath, sid):
     """Copy sanitized from infilepath to outfilepath"""
     with open(outfilepath, 'w') as fout:
         lines = open(infilepath)
         for line in remove_sensitive(lines):
+            if line.startswith(SNTAG):  # fullname found
+                line = '%s%s%s\n' % (SNTAG, sid, ENTAG)
             fout.write(line)
 
 
@@ -108,7 +112,7 @@ def name2sid(index, name, filename):
     match = fuzzy.find(name, index)
     logging.info('matches for %s : %s' % (name, str(match)))
     if match and match[0][1] > 1:
-        return match[0][0]
+        return '%06d' % int(match[0][0])
     raise ValueError("Could not find sid for '%s' in %s" % (name, filename))
 
 
@@ -126,7 +130,8 @@ def sanitize(index, indir, outdir, infilename):
         outfilename = create_filename(sid, vdate, vtime, lat)
         outfilepath = osp.join(outdir, outfilename)
 
-        sanitize_file(infilepath, outfilepath)
+        logging.info('writing %s' % outfilename)
+        sanitize_file(infilepath, outfilepath, sid)
         return outfilename
     except Exception as e:
         global error_counter
