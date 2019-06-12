@@ -116,10 +116,10 @@ def name2sid(index, name, filename):
     raise ValueError("Could not find sid for '%s' in %s" % (name, filename))
 
 
-def sanitize(index, indir, outdir, infilename):
+def sanitize(index, infilepath, outdir):
     """Remove sensitiv data and map name to id"""
     try:
-        infilepath = osp.join(indir, infilename)
+        infilename = osp.basename(infilepath)
         name = extract_patientname(infilepath)
         sid = name2sid(index, name, infilename)
         if sid in sids:
@@ -142,13 +142,18 @@ def sanitize(index, indir, outdir, infilename):
 
 
 def xmlfile_check(indir, outdir):
-    """Return list of XML file names and check data/dir existance"""
-    xmlfnames = [f for f in os.listdir(indir) if f.endswith('.xml')]
-    if not xmlfnames:
+    """Return list of XML filepaths and check data/dir existence"""
+    infilepaths = []
+    for path, dirs, files in os.walk(indir):
+        fpaths = [osp.join(path, f) for f in files if f.endswith('_SFA.xml')]
+        infilepaths.extend(fpaths)
+
+    if not infilepaths:
         raise IOError('No .xml files in: ' + indir)
     if not osp.isdir(outdir):
         raise IOError('Output dir does not exist: ' + outdir)
-    return xmlfnames
+
+    return infilepaths
 
 
 def run(indexfile, indir, outdir):
@@ -156,12 +161,13 @@ def run(indexfile, indir, outdir):
     log_info('loading index ' + indexfile)
     index = fuzzy.create_index(indexfile)
 
-    infilenames = xmlfile_check(indir, outdir)
-    n = len(infilenames)
+    infilepaths = xmlfile_check(indir, outdir)
+    n = len(infilepaths)
     log_info('processing %d files ...' % n)
-    for i, infilename in enumerate(infilenames):
-        logger.info('processing ' + infilename)
-        outfilename = sanitize(index, indir, outdir, infilename)
+    for i, infilepath in enumerate(infilepaths):
+        logger.info('processing ' + infilepath)
+        infilename = osp.basename(infilepath)
+        outfilename = sanitize(index, infilepath, outdir)
         print('%d of %d : %s -> %s' % (i + 1, n, infilename, outfilename))
 
     log_info('finished with %d error(s)' % error_counter)

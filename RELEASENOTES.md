@@ -1,5 +1,10 @@
 # Release Notes
 
+### Version 2.2.0
+
+- recursively scan data folder for XML files.
+
+
 ### Version 2.1.0
 
 - replace fullname by subject id in XML file
