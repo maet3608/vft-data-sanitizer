@@ -39,7 +39,7 @@ python sanitize.py ../data/index.csv ../data ../out
 Output should look like this
 
 ```bash
-running sanitizer version 2.2.0
+running sanitizer version 2.2.1
 loading index ../data/index.csv
 processing 2 files ...
 1 of 2 : DOE_20121024_114922_OD_000000_SFA.xml -> 000011-2012-10-24-11-49-22-OD.xml

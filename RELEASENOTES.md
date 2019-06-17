@@ -1,5 +1,11 @@
 # Release Notes
 
+
+### Version 2.2.1
+
+- fixed: detection of duplicates in output
+
+
 ### Version 2.2.0
 
 - recursively scan data folder for XML files.
