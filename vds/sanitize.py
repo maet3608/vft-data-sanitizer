@@ -27,7 +27,7 @@ logging.basicConfig(filename='sanitize.log',
 logger = logging.getLogger('sanitizer')
 
 error_counter = 0  # number file conversion errors
-sids = dict()  # Keep track of subject ids used
+outpaths = set()  # Keep track of output files created
 
 # Full name tags
 SNTAG, ENTAG = '<FULL_NAME>', '</FULL_NAME>'
@@ -122,13 +122,13 @@ def sanitize(index, infilepath, outdir):
         infilename = osp.basename(infilepath)
         name = extract_patientname(infilepath)
         sid = name2sid(index, name, infilename)
-        if sid in sids:
-            raise ValueError('Duplicate sid %s : %s ' % (sids[sid], infilename))
-        sids[sid] = (sid, infilename)
-
         vdate, vtime, lat = split_filename(infilename)
+
         outfilename = create_filename(sid, vdate, vtime, lat)
         outfilepath = osp.join(outdir, outfilename)
+        if outfilepath in outpaths:
+            raise ValueError('Duplicate output %s ' % outfilepath)
+        outpaths.add(outfilepath)
 
         logging.info('writing %s' % outfilename)
         sanitize_file(infilepath, outfilepath, sid)
