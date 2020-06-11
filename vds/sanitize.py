@@ -2,14 +2,6 @@
 Removes tags with patient info from XML file and replaces patient names by
 subject ids uses fuzzy matching between patient names in XML file and
 the index database.
-
-
-- read lines of XML
-- find <FULL_NAME or LAST_NAME', '<GIVEN_NAME', '<MIDDLE_NAME'
-- create subject name
-- fuzzy map to sid
-- ensure that no sid is used twice!
-- log errors
 """
 
 import logging
