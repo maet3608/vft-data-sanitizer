@@ -2,14 +2,6 @@
 Removes tags with patient info from XML file and replaces patient names by
 subject ids uses fuzzy matching between patient names in XML file and
 the index database.
-
-
-- read lines of XML
-- find <FULL_NAME or LAST_NAME', '<GIVEN_NAME', '<MIDDLE_NAME'
-- create subject name
-- fuzzy map to sid
-- ensure that no sid is used twice!
-- log errors
 """
 
 import logging
@@ -27,11 +19,14 @@ logging.basicConfig(filename='sanitize.log',
 logger = logging.getLogger('sanitizer')
 
 error_counter = 0  # number file conversion errors
-sids = dict()  # Keep track of subject ids used
+outpaths = set()  # Keep track of output files created
 
-# Set of tags to remove
+# Full name tags
+SNTAG, ENTAG = '<FULL_NAME>', '</FULL_NAME>'
+
+# Set of tags to remove. Note that full name will be replaced by sid
 STAGS = {'<LAST_NAME', '<GIVEN_NAME', '<MIDDLE_NAME', '<NAME_PREFIX',
-         '<NAME_SUFFIX', '<FULL_NAME', '<BIRTH_DATE', '<PATIENT_ID',
+         '<NAME_SUFFIX', '<BIRTH_DATE', '<PATIENT_ID',
          '<IMAGE_FILE_NAME'}
 
 
@@ -43,11 +38,10 @@ def log_info(msg):
 
 def extract_patientname(filepath):
     """Extract full name from xml file"""
-    stag, etag = '<FULL_NAME>', '</FULL_NAME>'
     with open(filepath) as f:
         for line in f:
-            if line.startswith(stag):
-                name = line.strip().replace(stag, '').replace(etag, '')
+            if line.startswith(SNTAG):
+                name = line.strip().replace(SNTAG, '').replace(ENTAG, '')
                 return name
     raise ValueError('No full patient name in ' + filepath)
 
@@ -81,7 +75,7 @@ def create_filename(sid, vdate, vtime, lat):
     y, o, d = vdate[:4], vdate[4:6], vdate[6:8]
     h, m, s = vtime[:2], vtime[2:4], vtime[4:6],
     uid = '%s-%s-%s-%s-%s-%s-%s' % (y, o, d, h, m, s, lat)
-    filename = '%06d-%s.xml' % (int(sid), uid)
+    filename = '%s-%s.xml' % (sid, uid)
     return filename
 
 
@@ -95,11 +89,13 @@ def remove_sensitive(lines):
     return (l for l in lines if not is_sensitive(l))
 
 
-def sanitize_file(infilepath, outfilepath):
+def sanitize_file(infilepath, outfilepath, sid):
     """Copy sanitized from infilepath to outfilepath"""
     with open(outfilepath, 'w') as fout:
         lines = open(infilepath)
         for line in remove_sensitive(lines):
+            if line.startswith(SNTAG):  # fullname found
+                line = '%s%s%s\n' % (SNTAG, sid, ENTAG)
             fout.write(line)
 
 
@@ -108,25 +104,26 @@ def name2sid(index, name, filename):
     match = fuzzy.find(name, index)
     logging.info('matches for %s : %s' % (name, str(match)))
     if match and match[0][1] > 1:
-        return match[0][0]
+        return '%06d' % int(match[0][0])
     raise ValueError("Could not find sid for '%s' in %s" % (name, filename))
 
 
-def sanitize(index, indir, outdir, infilename):
+def sanitize(index, infilepath, outdir):
     """Remove sensitiv data and map name to id"""
     try:
-        infilepath = osp.join(indir, infilename)
+        infilename = osp.basename(infilepath)
         name = extract_patientname(infilepath)
         sid = name2sid(index, name, infilename)
-        if sid in sids:
-            raise ValueError('Duplicate sid %s : %s ' % (sids[sid], infilename))
-        sids[sid] = (sid, infilename)
-
         vdate, vtime, lat = split_filename(infilename)
+
         outfilename = create_filename(sid, vdate, vtime, lat)
         outfilepath = osp.join(outdir, outfilename)
+        if outfilepath in outpaths:
+            raise ValueError('Duplicate output %s ' % outfilepath)
+        outpaths.add(outfilepath)
 
-        sanitize_file(infilepath, outfilepath)
+        logging.info('writing %s' % outfilename)
+        sanitize_file(infilepath, outfilepath, sid)
         return outfilename
     except Exception as e:
         global error_counter
@@ -137,13 +134,18 @@ def sanitize(index, indir, outdir, infilename):
 
 
 def xmlfile_check(indir, outdir):
-    """Return list of XML file names and check data/dir existance"""
-    xmlfnames = [f for f in os.listdir(indir) if f.endswith('.xml')]
-    if not xmlfnames:
+    """Return list of XML filepaths and check data/dir existence"""
+    infilepaths = []
+    for path, dirs, files in os.walk(indir):
+        fpaths = [osp.join(path, f) for f in files if f.endswith('_SFA.xml')]
+        infilepaths.extend(fpaths)
+
+    if not infilepaths:
         raise IOError('No .xml files in: ' + indir)
     if not osp.isdir(outdir):
         raise IOError('Output dir does not exist: ' + outdir)
-    return xmlfnames
+
+    return infilepaths
 
 
 def run(indexfile, indir, outdir):
@@ -151,12 +153,13 @@ def run(indexfile, indir, outdir):
     log_info('loading index ' + indexfile)
     index = fuzzy.create_index(indexfile)
 
-    infilenames = xmlfile_check(indir, outdir)
-    n = len(infilenames)
+    infilepaths = xmlfile_check(indir, outdir)
+    n = len(infilepaths)
     log_info('processing %d files ...' % n)
-    for i, infilename in enumerate(infilenames):
-        logger.info('processing ' + infilename)
-        outfilename = sanitize(index, indir, outdir, infilename)
+    for i, infilepath in enumerate(infilepaths):
+        logger.info('processing ' + infilepath)
+        infilename = osp.basename(infilepath)
+        outfilename = sanitize(index, infilepath, outdir)
         print('%d of %d : %s -> %s' % (i + 1, n, infilename, outfilename))
 
     log_info('finished with %d error(s)' % error_counter)
